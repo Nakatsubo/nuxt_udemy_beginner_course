@@ -15,7 +15,7 @@
 const axios = require('axios');
 let url = 'https://jsonplaceholder.typicode.com/usersxxxxx';
 export default {
-  // コンポーネントを初期化する前に非同期の通信を行えるようにするためのメソッド
+  // asyncData -> コンポーネントを初期化する前に非同期の通信を行えるようにするためのメソッド
   asyncData({ params, error }) {
     return axios.get(url)
       .then((res) => {
