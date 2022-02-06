@@ -6,6 +6,7 @@
 1. ビュー
 1. 非同期通信
 1. アセットファイル
+1. Vuexストア
 
 ## 1. Hello, World
 
@@ -347,3 +348,190 @@ export default {
 
 ### 静的ファイル
 ~/static/ 以下にファイルを保存する
+
+## 6. Vuex
+状態管理を行うためのライブラリ。アプリケーションの状態をひとつの場所において管理する
+
+### メリット
+
+- データの流れを見えやすくすることでバグが少なくなる
+- デバックがしやすくなる
+
+### デメリット
+
+- コードが冗長になる
+- 学習コスト高い
+
+### State / ステート
+アプリケーションの状態を保持するオブジェクト。
+ステートオブジェクトにはアプリケーションの状態が全て含まれており、信頼できる唯一の情報源（single source of truth）
+各コンポーネントから直接ステートの値を書き換えることは禁じられており、書き換える場合はミューテーションを経由させる。
+
+### Actions / アクション
+外部APIとの通信を行い、ミューテーションを呼び出す。非同期処理が必要な場合アクションにコードを記述する。
+
+### Mutations / ミューテーション
+Vuexのストアの状態を唯一変更できる存在。アクションを経由してステートを変更する。
+
+#### ~/store/index.js
+
+```javascript
+import Vuex from 'vuex'
+
+const createStore = () => {
+  return new Vuex.Store({
+  // state は dataオブジェクトと同等の役割を果たす
+  state: function() {
+      return {
+        message: 'Hello Vuex!'
+      }
+    },
+  })
+}
+
+export default createStore
+```
+
+#### ~/pages/index.vue
+
+```javascript
+<template>
+  <section class="container">
+    <div>
+      <p>{{ $store.state.message }}</p>>
+    </div>
+  </section>
+</template>
+```
+### ミューテーションでステートを書き換える
+
+#### ~/store/index.js
+
+```javascript
+import Vuex from 'vuex'
+
+const createStore = () => {
+  return new Vuex.Store({
+    state: function() {
+      return {
+        message: 'Hello Vuex!'
+      }
+    },
+    mutations: {
+      updateMessage: function(state) {
+        state.message = 'Updated!'
+      }
+    }
+  })
+}
+
+export default createStore
+```
+
+#### ~/pages/index.vue
+
+```javascript
+<template>
+  <section class="container">
+    <div>
+      <p>{{ $store.state.message }}</p>
+      // commit でミューテーションを呼び出す
+      <button v-on:click="$store.commit('updateMessage')">Update</button>>
+    </div>
+  </section>
+</template>
+```
+
+### ミューテーションへ値を渡しステートを書き換える
+commit メソッドの第二引数で値を渡す
+
+#### ~/store/index.js
+
+```javascript
+import Vuex from 'vuex'
+
+const createStore = () => {
+  return new Vuex.Store({
+    state: function() {
+      return {
+        message: 'Hello Vuex!'
+      }
+    },
+    mutations: {
+      // payload で値を受け取る
+      updateMessage: function(state, payload) {
+        state.message = payload
+      }
+    },
+  })
+}
+
+export default createStore
+```
+
+#### ~/pages/index.vue
+
+```javascript
+<template>
+  <section class="container">
+    <div>
+      <p>{{ $store.state.message }}</p>>
+      <button v-on:click="$store.commit('updateMessage', 'Commit with Payload')">Update</button>
+    </div>
+  </section>
+</template>
+```
+
+#### アクションを経由し、ミューテーションへ値を渡しステートを書き換える
+
+#### ~/store/index.js
+
+```javascript
+import Vuex from 'vuex'
+
+const createStore = () => {
+  return new Vuex.Store({
+    state: function() {
+      return {
+        message: 'Hello Vuex!'
+      }
+    },
+    mutations: {
+      updateMessage: function(state, payload) {
+        state.message = payload
+      }
+    },
+    actions: {
+      updateMessageAction(context, payload) {
+        context.commit('updateMessage', payload)
+      }
+    }
+  })
+}
+
+export default createStore
+```
+
+#### ~/pages/index.vue
+
+```javascript
+<template>
+  <section class="container">
+    <div>
+      <p>{{ $store.state.message }}</p>
+      // dispatch メソッドで値をミューテーションへ渡す
+      <button v-on:click="$store.dispatch('updateMessageAction', 'Dispatch with payload')">Dispatch</button>
+    </div>
+  </section>
+</template>
+```
+
+#### クラシックモード / モジュールモード
+
+##### クラシックモード
+index.js の一つのファイルに記述する
+
+##### モジュールモード
+複数のファイルに記述する
+
+
