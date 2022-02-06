@@ -5,6 +5,7 @@
 1. ルーティング
 1. ビュー
 1. 非同期通信
+1. アセットファイル
 
 ## 1. Hello, World
 
@@ -322,3 +323,27 @@ export default {
 }
 </script>
 ```
+
+### エラーメソッドの追加
+
+```javascript
+.catch((e => {
+  // console.log(e.response.status)
+  error({ statusCode: e.response.status, message: e.message })
+}))
+```
+
+## 5. アセットファイル
+
+#### ~/pages/index.vue
+
+```javascript
+<template>
+  <section class="container">
+    <img src="~/assets/cat.jpg" alt="#">
+  </section>
+</template>
+```
+
+### 静的ファイル
+~/static/ 以下にファイルを保存する
