@@ -1,19 +1,19 @@
 # Nuxt.js 入門
 
 ## 0. インデックス
-- 1. Hello, World
-- 2. 
+1. Hello, World
+1. 
 
 ## 1. Hello, World
 
-```:bash
+```bash
 $ create-nuxt-app hello
 $ npm run dev
 ```
 
 ### マスタッシュ構文
 
-```:javascript
+```javascript
 <template>
   <section class="container">
     <h1>{{ message }}</h1>
@@ -36,7 +36,7 @@ export default {
 
 #### ~/pages/index.vue
 
-```:javascript
+```javascript
 <template>
   <section class="container">
     <h1>{{ message }}</h1>
@@ -58,7 +58,7 @@ export default {
 
 #### ~/pages/price.vue
 
-```:javascript
+```javascript
 <template>
   <section class="container">
     <h1>Price Page</h1>
@@ -72,7 +72,7 @@ export default {
 
 #### package.json
 
-```:javascript
+```javascript
 {
   "name": "nuxt-scratch-app",
   "dependencies": {
@@ -86,7 +86,7 @@ export default {
 }
 ```
 
-```:bash
+```bash
 $ npm install
 
 $ mkdir pages
@@ -95,7 +95,7 @@ $ touch index.vue
 
 ### ~/pages/index.vue
 
-```:javascript
+```javascript
 <template>
   <h1>Hello, World!</h1>
 </template>
