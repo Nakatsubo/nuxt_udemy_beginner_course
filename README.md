@@ -4,6 +4,7 @@
 1. Hello, World
 1. ルーティング
 1. ビュー
+1. 非同期通信
 
 ## 1. Hello, World
 
@@ -275,4 +276,49 @@ nuxt.config.js に定義した head が全ページに適用される
       { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap' }
     ]
   },
+```
+
+## 4. 非同期通信
+axiosをインストールする
+
+##### シードデータ用API
+[JSONPlaceholder](https://jsonplaceholder.typicode.com/)
+
+```bash
+$ npm install axios
+```
+
+#### ~/pages/index.vue
+
+```javascript
+<template>
+  <section class="container">
+    <div>
+      <!-- {{ users[0].id }}, {{ users[0].name }} -->
+      <ul>
+        <li v-for="user in users" :key="user.id">
+          {{ user.id }}, {{ user.name }}, {{ user.company.name }}
+        </li>
+      </ul>
+    </div>
+  </section>
+</template>
+
+<script>
+const axios = require('axios');
+let url = 'https://jsonplaceholder.typicode.com/users';
+export default {
+  // asyncData -> コンポーネントを初期化する前に非同期の通信を行えるようにするためのメソッド
+  asyncData({ params, error }) {
+    return axios.get(url)
+      .then((res) => {
+        return { users: res.data }
+      })
+      .catch((e => {
+        // console.log(e.response.status)
+        error({ statusCode: e.response.status, message: e.message })
+      }))
+  }
+}
+</script>
 ```
