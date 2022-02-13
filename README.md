@@ -8,6 +8,7 @@
 1. アセットファイル
 1. Vuexストア
 1. サンプルプロジェクト カウンターアプリ
+1. サンプルプロジェクト　Nuxt.js + Firebase (SPA)
 
 ## 1. Hello, World
 
@@ -632,6 +633,7 @@ export const mutations = {
     <h2>{{ title }}</h2>
     counter: {{ $store.state.counter.counter }}
     <button v-on:click="$store.commit('counter/countUp')">+1</button>
+    // リセットボタンの追加
     <button v-on:click="$store.commit('counter/reset')">reset</button>
   </section>
 </template>
@@ -646,4 +648,749 @@ export default {
   }
 }
 </script>
+```
+
+## 8. サンプルプロジェクト　Nuxt.js + Firebase (SPA)
+
+### Firebase
+BaaS(Backend as a service)というサービスの一種
+アプリケーションのバックエンドシステムを提供する
+
+### Firebase / CloudFirestore
+ドキュメント指向データベース（ex. MongoDB）
+ここでは**テストモード**、asianortheast1で開始する
+
+### Firebase関連パッケージをインストール
+- firebase
+- vuexfire
+
+```bash
+$ npm install --save firebase@7.19.1
+$ npm install --save vuexfire@3.0.1
+```
+
+### 環境変数を設定
+
+```bash
+$ npm install --save @nuxtjs/dotenv@1.3.0
+```
+
+```
+FIREBASE_PROJECT_ID = {projectId}
+```
+
+#### ~nuxt.config.js
+
+```javascript
+/*
+  ** Nuxt.js modules
+  */
+  modules: [
+    '@nuxtjs/dotenv'
+  ],
+```
+
+#### ~/plugins/firebase.js
+
+```javascript
+import firebase from 'firebase';
+
+const config = {
+  projectId: process.env.FIREBASE_PROJECT_ID
+}
+
+// アプリを初期化する
+if (!firebase.apps.length) {
+  firebase.initializeApp(config)
+}
+
+export default firebase
+```
+
+#### ~/store/index.js
+
+```javascript
+import { vuexfireMutations } from 'vuexfire';
+
+// 必ず ~/store/index.js に記述する
+export const mutations = {
+  ...vuexfireMutations
+}
+```
+
+### todos.js の設定
+
+#### ~/store/todos.js
+
+```javascript
+import firebase from '~/plugins/firebase'
+import { firestoreAction } from 'vuexfire'
+
+const db = firebase.firestore()
+const todosRef = db.collection('todos')
+
+// todos を管理
+export const state = () => {
+  todos: []
+}
+
+export const actions = {
+  // todo データを初期化し呼び出す　firestoreAction を呼び出す　第一引数の bindFirestoreRef のみ受け取る
+  init: firestoreAction(( { bindFirestoreRef }) => {
+    // collectionの参照をする // バインドする -> 関連づける
+    bindFirestoreRef('todos', todosRef)
+  }),
+  // todo を作成する
+  add: firestoreAction((context, name) => {
+    // name が空でなければ処理を実行する
+    if(name.trim()) {
+      todosRef.add({
+        // 値を渡す
+        name: name,
+        done: false,
+        created: firebase.firestore.FaildValue.serverTimestamp() // タイムスタンプを取得する
+      })
+    }
+  }),
+  // todo を削除する
+  remove: firestoreAction((context, id) => {
+    todosRef.doc(id).delete()
+  }),
+  // todo を更新する
+  toggle: firestoreAction((context, todo) => {
+    todosRef.doc(todo.id).update({
+      done: !todo.done
+    })
+  })
+}
+```
+
+### todos.vue の設定
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+
+  </div>
+</template>
+
+<script>
+export default {
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  }
+}
+</script>
+```
+
+### todo の新規追加
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+    <div class="form">
+      <!-- .prevent を付与し、Addボタンを押した際にページがリロードされないようにする -->
+      <form v-on:submit.prevent="add">
+        <input v-model="name">
+        <button>Add</button>
+      </form>
+    </div>
+
+  </div>
+</template>
+
+<script>
+export default {
+  // 新規登録されるデータを一時保存する
+  data: function() {
+    return {
+      name: '',
+      done: false
+    }
+  },
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  },
+  // データ送信際に addメソッドを実行する
+  methods: {
+    add() {
+      this.$store.dispatch('todos/add', this.name)
+      // addメソッドが実行されたら値を空にする
+      this.name = ''
+    }
+  },
+}
+</script>
+```
+
+### todo の一覧追加
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+    <!-- {{ todos }} -->
+    <ul>
+      <li v-for="todo in todos" :key="todo.id">
+        <!-- {{ todo }} -->
+        {{ todo.done }}
+        {{ todo.name }}
+        {{ todo.created }}
+      </li>
+    </ul>
+    <div class="form">
+      <!-- .prevent を付与し、Addボタンを押した際にページがリロードされないようにする -->
+      <form v-on:submit.prevent="add">
+        <input v-model="name">
+        <button>Add</button>
+      </form>
+    </div>
+
+  </div>
+</template>
+
+<script>
+export default {
+  // 新規登録されるデータを一時保存する
+  data: function() {
+    return {
+      name: '',
+      done: false
+    }
+  },
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  },
+  // データ送信際に addメソッドを実行する
+  methods: {
+    add() {
+      this.$store.dispatch('todos/add', this.name)
+      // addメソッドが実行されたら値を空にする
+      this.name = ''
+    }
+  },
+  computed: {
+    todos() {
+      return this.$store.state.todos.todos
+    }
+  }
+}
+</script>
+```
+
+### todo の削除
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+    <!-- {{ todos }} -->
+    <ul>
+      <li v-for="todo in todos" :key="todo.id">
+        <!-- {{ todo }} -->
+        {{ todo.done }} {{ todo.name }} {{ todo.created }}
+        <button v-on:click="remove(todo.id)">X</button>
+      </li>
+    </ul>
+    <div class="form">
+      <!-- .prevent を付与し、Addボタンを押した際にページがリロードされないようにする -->
+      <form v-on:submit.prevent="add">
+        <input v-model="name">
+        <button>Add</button>
+      </form>
+    </div>
+
+  </div>
+</template>
+
+<script>
+export default {
+  // 新規登録されるデータを一時保存する
+  data: function() {
+    return {
+      name: '',
+      done: false
+    }
+  },
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  },
+  // データ送信際に addメソッドを実行する
+  methods: {
+    // データを追加する
+    add() {
+      this.$store.dispatch('todos/add', this.name)
+      // addメソッドが実行されたら値を空にする
+      this.name = ''
+    },
+    // データを削除する
+    remove(id) {
+      this.$store.dispatch('todos/remove', id)
+    }
+  },
+  computed: {
+    todos() {
+      return this.$store.state.todos.todos
+    }
+  }
+}
+</script>
+```
+
+### todo の更新
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+    <!-- {{ todos }} -->
+    <ul>
+      <li v-for="todo in todos" :key="todo.id">
+        {{ todo }}
+        <input type="checkbox" v-bind:checked="todo.done" @change="toggle(todo)">
+
+        {{ todo.name }} {{ todo.created }}
+        <button v-on:click="remove(todo.id)">X</button>
+      </li>
+    </ul>
+    <div class="form">
+      <!-- .prevent を付与し、Addボタンを押した際にページがリロードされないようにする -->
+      <form v-on:submit.prevent="add">
+        <input v-model="name">
+        <button>Add</button>
+      </form>
+    </div>
+
+  </div>
+</template>
+
+<script>
+export default {
+  // 新規登録されるデータを一時保存する
+  data: function() {
+    return {
+      name: '',
+      done: false
+    }
+  },
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  },
+  // データ送信際に addメソッドを実行する
+  methods: {
+    // データを追加する
+    add() {
+      this.$store.dispatch('todos/add', this.name)
+      // addメソッドが実行されたら値を空にする
+      this.name = ''
+    },
+    // データを削除する
+    remove(id) {
+      this.$store.dispatch('todos/remove', id)
+    },
+    // データを更新する
+    toggle(todo) {
+      this.$store.dispatch('todos/toggle', todo)
+    }
+  },
+  computed: {
+    todos() {
+      return this.$store.state.todos.todos
+    }
+  }
+}
+</script>
+```
+
+### スタイルの追加
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+    <!-- {{ todos }} -->
+    <ul>
+      <li v-for="todo in todos" :key="todo.id">
+        <!-- {{ todo }} -->
+        <input type="checkbox" v-bind:checked="todo.done" @change="toggle(todo)">
+
+        <span v-bind:class="{ done: todo.done }">
+          {{ todo.name }} {{ todo.created }}
+        </span> 
+        <button v-on:click="remove(todo.id)">X</button>
+      </li>
+    </ul>
+    <div class="form">
+      <!-- .prevent を付与し、Addボタンを押した際にページがリロードされないようにする -->
+      <form v-on:submit.prevent="add">
+        <input v-model="name">
+        <button>Add</button>
+      </form>
+    </div>
+
+  </div>
+</template>
+
+<script>
+export default {
+  // 新規登録されるデータを一時保存する
+  data: function() {
+    return {
+      name: '',
+      done: false
+    }
+  },
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  },
+  // データ送信際に addメソッドを実行する
+  methods: {
+    // データを追加する
+    add() {
+      this.$store.dispatch('todos/add', this.name)
+      // addメソッドが実行されたら値を空にする
+      this.name = ''
+    },
+    // データを削除する
+    remove(id) {
+      this.$store.dispatch('todos/remove', id)
+    },
+    // データを更新する
+    toggle(todo) {
+      this.$store.dispatch('todos/toggle', todo)
+    }
+  },
+  computed: {
+    todos() {
+      return this.$store.state.todos.todos
+    }
+  }
+}
+</script>
+
+<style scoped>
+li > span.done {
+  text-decoration: line-through;
+}
+</style>
+```
+
+### 日時フォーマットの整形
+
+### Moment のインストール
+
+```bash
+$ npm install --save moment@2.24.0
+```
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+    {{ todos }}
+    <ul>
+      <li v-for="todo in todos" :key="todo.id">
+        <!-- {{ todo }} -->
+        <input type="checkbox" v-bind:checked="todo.done" @change="toggle(todo)">
+
+        <span v-bind:class="{ done: todo.done }">
+          {{ todo.name }} {{ todo.created.toDate() | dateFilter}}
+        </span> 
+        <button v-on:click="remove(todo.id)">X</button>
+      </li>
+    </ul>
+    <div class="form">
+      <!-- .prevent を付与し、Addボタンを押した際にページがリロードされないようにする -->
+      <form v-on:submit.prevent="add">
+        <input v-model="name">
+        <button>Add</button>
+      </form>
+    </div>
+
+  </div>
+</template>
+
+<script>
+import moment from 'moment'
+
+export default {
+  // 新規登録されるデータを一時保存する
+  data: function() {
+    return {
+      name: '',
+      done: false
+    }
+  },
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  },
+  // データ送信際に addメソッドを実行する
+  methods: {
+    // データを追加する
+    add() {
+      this.$store.dispatch('todos/add', this.name)
+      // addメソッドが実行されたら値を空にする
+      this.name = ''
+    },
+    // データを削除する
+    remove(id) {
+      this.$store.dispatch('todos/remove', id)
+    },
+    // データを更新する
+    toggle(todo) {
+      this.$store.dispatch('todos/toggle', todo)
+    }
+  },
+  computed: {
+    // データ一覧を表示する
+    todos() {
+      return this.$store.state.todos.todos
+    }
+  },
+  // 日時フォーマットを整形する
+  filters: {
+    dateFilter: function(date) {
+      return moment(date).format('YYYY/MM/DD HH:mm:ss')
+    }
+  } 
+}
+</script>
+
+<style scoped>
+li > span.done {
+  text-decoration: line-through;
+}
+</style>
+```
+
+### 値が空だった場合の対応
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+    <!-- {{ todos }} -->
+    <ul>
+      <li v-for="todo in todos" :key="todo.id">
+        <!-- {{ todo }} -->
+        <!-- todo.created の値が空だったら一覧に表示しない -->
+        <span v-if="todo.created">
+          <input type="checkbox" v-bind:checked="todo.done" @change="toggle(todo)">
+
+          <span v-bind:class="{ done: todo.done }">
+            {{ todo.name }} {{ todo.created.toDate() | dateFilter}}
+          </span> 
+          <button v-on:click="remove(todo.id)">X</button>
+        </span>
+      </li>
+    </ul>
+    <div class="form">
+      <!-- .prevent を付与し、Addボタンを押した際にページがリロードされないようにする -->
+      <form v-on:submit.prevent="add">
+        <input v-model="name">
+        <button>Add</button>
+      </form>
+    </div>
+
+  </div>
+</template>
+
+<script>
+import moment from 'moment'
+
+export default {
+  // 新規登録されるデータを一時保存する
+  data: function() {
+    return {
+      name: '',
+      done: false
+    }
+  },
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  },
+  // データ送信際に addメソッドを実行する
+  methods: {
+    // データを追加する
+    add() {
+      this.$store.dispatch('todos/add', this.name)
+      // addメソッドが実行されたら値を空にする
+      this.name = ''
+    },
+    // データを削除する
+    remove(id) {
+      this.$store.dispatch('todos/remove', id)
+    },
+    // データを更新する
+    toggle(todo) {
+      this.$store.dispatch('todos/toggle', todo)
+    }
+  },
+  computed: {
+    // データ一覧を表示する
+    todos() {
+      return this.$store.state.todos.todos
+    }
+  },
+  // 日時フォーマットを整形する
+  filters: {
+    dateFilter: function(date) {
+      return moment(date).format('YYYY/MM/DD HH:mm:ss')
+    }
+  } 
+}
+</script>
+
+<style scoped>
+/*　スタイルを修正する　*/
+li > span > span.done {
+  text-decoration: line-through;
+}
+</style>
+```
+
+### ソート順を修正
+
+### lodash を読み込む
+[lodash](https://lodash.com/docs/4.17.15)
+
+#### ~nuxt.config.json
+
+```javascript
+const webpack = require('webpack')
+
+///////////////////
+
+/*
+  ** Build configuration
+  */
+  build: {
+    /*
+    ** You can extend webpack config here
+    */
+    extend(config, ctx) {
+      
+    },
+    plugins: [
+      new webpack.ProvidePlugin({
+        '_': 'lodash'
+      })
+    ]
+
+  }
+```
+
+#### ~/stote/index.js
+
+```javascript
+export const getters = {
+  orderedTodos: state => {
+    return _.sortBy(state.todos, created)
+  }
+}
+```
+
+#### ~/pages/todos.vue
+
+```javascript
+<template>
+  <div>
+    <!-- {{ todos }} -->
+    <ul>
+      <li v-for="todo in todos" :key="todo.id">
+        <!-- {{ todo }} -->
+        <!-- todo.created の値が空だったら一覧に表示しない -->
+        <span v-if="todo.created">
+          <input type="checkbox" v-bind:checked="todo.done" @change="toggle(todo)">
+
+          <span v-bind:class="{ done: todo.done }">
+            {{ todo.name }} {{ todo.created.toDate() | dateFilter}}
+          </span> 
+          <button v-on:click="remove(todo.id)">X</button>
+        </span>
+      </li>
+    </ul>
+    <div class="form">
+      <!-- .prevent を付与し、Addボタンを押した際にページがリロードされないようにする -->
+      <form v-on:submit.prevent="add">
+        <input v-model="name">
+        <button>Add</button>
+      </form>
+    </div>
+
+  </div>
+</template>
+
+<script>
+import moment from 'moment'
+
+export default {
+  // 新規登録されるデータを一時保存する
+  data: function() {
+    return {
+      name: '',
+      done: false
+    }
+  },
+  // todos.js の initメソッドを呼び出す 
+  created: function() {
+    this.$store.dispatch('todos/init')
+  },
+  // データ送信際に addメソッドを実行する
+  methods: {
+    // データを追加する
+    add() {
+      this.$store.dispatch('todos/add', this.name)
+      // addメソッドが実行されたら値を空にする
+      this.name = ''
+    },
+    // データを削除する
+    remove(id) {
+      this.$store.dispatch('todos/remove', id)
+    },
+    // データを更新する
+    toggle(todo) {
+      this.$store.dispatch('todos/toggle', todo)
+    }
+  },
+  computed: {
+    // データ一覧を表示する
+    todos() {
+      // return this.$store.state.todos.todos
+      // ソートしたデータ一覧を表示する
+      return this.$store.getters['todos/orderdTodos']
+    }
+  },
+  // 日時フォーマットを整形する
+  filters: {
+    dateFilter: function(date) {
+      return moment(date).format('YYYY/MM/DD HH:mm:ss')
+    }
+  } 
+}
+</script>
+
+<style scoped>
+li > span > span.done {
+  text-decoration: line-through;
+}
+</style>
 ```
