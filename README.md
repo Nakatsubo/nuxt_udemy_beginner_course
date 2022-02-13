@@ -7,6 +7,7 @@
 1. 非同期通信
 1. アセットファイル
 1. Vuexストア
+1. サンプルプロジェクト カウンターアプリ
 
 ## 1. Hello, World
 
@@ -349,7 +350,7 @@ export default {
 ### 静的ファイル
 ~/static/ 以下にファイルを保存する
 
-## 6. Vuex
+## 6. Vuexストア
 状態管理を行うためのライブラリ。アプリケーションの状態をひとつの場所において管理する
 
 ### メリット
@@ -534,4 +535,115 @@ index.js の一つのファイルに記述する
 ##### モジュールモード
 複数のファイルに記述する
 
+## 7. サンプルプロジェクト カウンターアプリ
 
+### 7-1. カウントアップの実装
+
+#### ~/store/counter.js
+
+```javascript
+export const state = () => ({
+  counter: 0
+})
+
+export const mutations = () => ({
+  countUp: function(state) {
+    state.counter++
+  }
+})
+```
+
+#### ~/components/Counter.vue
+
+```javascript
+<template>
+  <section>
+    <h2>{{ title }}</h2>
+    counter: {{ $store.state.counter.counter }}
+    <button v-on:click="$store.commit('counter/countUp')">+1</button>
+  </section>
+</template>
+
+<script>
+
+export default {
+  data: function() {
+    return {
+      title: 'Counter'
+    }
+  }
+}
+</script>
+```
+
+#### ~/pages/index.vue
+
+```javascript
+<template>
+  <section class="container">
+    <div>
+      <counter></counter>
+      <hr>
+      <counter></counter>
+      <hr>
+      <counter></counter>
+      <hr>
+    </div>
+  </section>
+</template>
+
+<script>
+// Counterコンポーネントを index.vueに読み込む
+import Counter from '~/components/Counter.vue'
+
+export default {
+  components: {
+    Counter
+  }
+}
+</script>
+```
+
+### 7-2. カウントリセットの実装
+
+#### ~/store/counter.js
+
+```javascript
+export const state = ({
+  counter: 0
+})
+
+export const mutations = {
+  countUp: function(state) {
+    state.counter++
+  },
+  // リセット機能の追加
+  reset: function(state) {
+    state.counter = 0
+  }
+}
+```
+
+#### ~/components/Counter.vue
+
+```javascript
+<template>
+  <section>
+    <h2>{{ title }}</h2>
+    counter: {{ $store.state.counter.counter }}
+    <button v-on:click="$store.commit('counter/countUp')">+1</button>
+    <button v-on:click="$store.commit('counter/reset')">reset</button>
+  </section>
+</template>
+
+<script>
+
+export default {
+  data: function() {
+    return {
+      title: 'Counter'
+    }
+  }
+}
+</script>
+```
